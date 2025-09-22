@@ -154,7 +154,7 @@ def main(pdf_file):
 
 if __name__ == "__main__":
     locale.setlocale(locale.LC_TIME, "fr_FR.UTF-8")
-    for pdf_file in os.listdir('../plannings_mensuels'):
-        main(os.path.join('../plannings_mensuels', pdf_file))
+    for pdf_file in os.listdir('plannings_mensuels'):
+        main(os.path.join('plannings_mensuels', pdf_file))
     shutil.rmtree("crop_cell")
     shutil.rmtree("extracted_images")
