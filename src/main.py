@@ -93,12 +93,12 @@ def main(pdf_file):
     while processed_date_day <= int(upper_date.split('/')[0]):
         date = datetime(int(dates.split('/')[-1]), int(dates.split('/')[1]), processed_date_day)
         day_name = date.strftime("%A").capitalize()
-        planning[f"{day_name} {processed_date_day}/{dates.split('/')[1]}/{dates.split('/')[-1]}"] = {}
+        planning[f"{day_name} {processed_date_day} {mounths[int(dates.split('/')[1])]} {dates.split('/')[-1]}"] = {}
         for page_number, table in enumerate(tables):
             title = table.df[0][0]
             service = title.split('\n')[-1].split(' ')[0]
             if service in color_codes.keys():
-                planning[f"{day_name} {processed_date_day}/{dates.split('/')[1]}/{dates.split('/')[-1]}"][
+                planning[f"{day_name} {processed_date_day} {mounths[int(dates.split('/')[1])]} {dates.split('/')[-1]}"][
                     title.split('\n')[-1]] = []
                 name_list = np.array(table.df[0][2::])
                 name_list = name_list[name_list != '']
@@ -106,7 +106,7 @@ def main(pdf_file):
                     for i, name in enumerate(name_list):
                         if is_right_color(f"crop_cell/page{page_number + 1}_cell_{i + 2}_{day_number}.png",
                                           color_code[1]):
-                            planning[f"{day_name} {processed_date_day} {mounths[dates.split('/')[1]]} {dates.split('/')[-1]}"][
+                            planning[f"{day_name} {processed_date_day} {mounths[int(dates.split('/')[1])]} {dates.split('/')[-1]}"][
                                 title.split('\n')[-1]].append(f"{color_code[0]} - {name.split('\n')[0]}")
 
         processed_date_day += 1
