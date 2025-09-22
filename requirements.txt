@@ -1,0 +1,6 @@
+camelot_py==1.0.9
+fitz==0.0.1.dev2
+numpy==2.3.3
+opencv_python==4.12.0.88
+opencv_python_headless==4.12.0.88
+reportlab==4.4.4
