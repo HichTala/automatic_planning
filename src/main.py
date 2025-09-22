@@ -78,6 +78,8 @@ def main(pdf_file):
                 ('8:30-12:00', np.array([0, 130, 250])), ('20:00-8:00', np.array([120, 20, 200])),
                 ('20:30-7:30', np.array([180, 120, 130]))]
     }
+    mounths = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre",
+               "Novembre", "Décembre"]
 
     tables = camelot.read_pdf(pdf_file, pages='all', line_scale=40)
     title = tables[0].df[0][0]
@@ -90,7 +92,7 @@ def main(pdf_file):
 
     while processed_date_day <= int(upper_date.split('/')[0]):
         date = datetime(int(dates.split('/')[-1]), int(dates.split('/')[1]), processed_date_day)
-        day_name = date.strftime("%A")
+        day_name = date.strftime("%A").capitalize()
         planning[f"{day_name} {processed_date_day}/{dates.split('/')[1]}/{dates.split('/')[-1]}"] = {}
         for page_number, table in enumerate(tables):
             title = table.df[0][0]
@@ -104,7 +106,7 @@ def main(pdf_file):
                     for i, name in enumerate(name_list):
                         if is_right_color(f"crop_cell/page{page_number + 1}_cell_{i + 2}_{day_number}.png",
                                           color_code[1]):
-                            planning[f"{day_name} {processed_date_day}/{dates.split('/')[1]}/{dates.split('/')[-1]}"][
+                            planning[f"{day_name} {processed_date_day} {mounths[dates.split('/')[1]]} {dates.split('/')[-1]}"][
                                 title.split('\n')[-1]].append(f"{color_code[0]} - {name.split('\n')[0]}")
 
         processed_date_day += 1
