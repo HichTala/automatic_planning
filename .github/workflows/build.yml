@@ -2,8 +2,8 @@ name: Build executables
 
 on:
   push:
-    branches: [ master ]
-  pull_request:
+    tags:
+      - "v*.*.*"   # runs only when you push a version tag like v1.0.0
 
 jobs:
   build:
@@ -36,3 +36,20 @@ jobs:
         with:
           name: executable-${{ matrix.os }}
           path: dist/
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v5
+        with:
+          path: dist
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
