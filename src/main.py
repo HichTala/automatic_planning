@@ -109,7 +109,7 @@ def main(pdf_file):
                 ('9:00-16:00', np.array([250, 255, 120]))],
         'NUI': [('9:00-12:00', np.array([120, 120, 70])), ('13:00-16:30', np.array([140, 255, 50])),
                 ('8:30-12:00', np.array([0, 130, 250])), ('20:00-8:00', np.array([120, 20, 200])),
-                ('20:30-7:30', np.array([180, 120, 130]))]
+                ('20:00-8:00', np.array([180, 120, 130]))]
     }
     mounths = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre",
                "Novembre", "Décembre"]
@@ -153,7 +153,7 @@ def main(pdf_file):
     styles = getSampleStyleSheet()
     story = []
     rowHeights = 18
-    units_list = ['ARO - Unité de vie Aromates', 'INF - Infirmerie Jour', 'LAV - Unité de vie Lavande',
+    units_list = ['INF - Infirmerie Jour', 'ARO - Unité de vie Aromates', 'LAV - Unité de vie Lavande',
                   'ORA - Unité de vie Orangeraie',
                   'ROS - Unité de vie Rose', 'TUL - Unité de vie Tulipe', 'VLT - Volants', 'NUI - Nuit']
 
@@ -161,7 +161,7 @@ def main(pdf_file):
         story.append(Paragraph(f"<b>{day}</b>", styles["Title"]))
         story.append(Spacer(1, 12))
 
-        table_data = [["IDE", "8:00", "", ""], ["", "8:00", "", ""]]
+        table_data = []
         add_to_table(table_data, story, rowHeights)
 
         for unit in units_list:
