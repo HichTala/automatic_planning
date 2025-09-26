@@ -161,9 +161,6 @@ def main(pdf_file):
         story.append(Paragraph(f"<b>{day}</b>", styles["Title"]))
         story.append(Spacer(1, 12))
 
-        table_data = []
-        add_to_table(table_data, story, rowHeights)
-
         for unit in units_list:
             shifts = units[unit]
             rows = []
