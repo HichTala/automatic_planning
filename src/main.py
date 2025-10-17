@@ -3,13 +3,133 @@ import fitz
 import cv2
 import numpy as np
 import locale
-from datetime import datetime
 import os
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 import shutil
+
+import tkinter as tk
+from tkinter import ttk, messagebox
+import datetime
+import calendar
+
+
+class SimpleDatePicker(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("Planning Auto")
+        self.resizable(False, False)
+        pad = {"padx": 8, "pady": 6}
+
+        today = datetime.date.today()
+        self.year_range = list(range(today.year - 50, today.year + 11))
+
+        # Variables
+        self.year_var = tk.IntVar(value=today.year)
+        self.month_var = tk.IntVar(value=today.month)
+        self.day_var = tk.IntVar(value=today.day)
+
+        # Year
+        ttk.Label(self, text="Year:").grid(row=0, column=0, **pad, sticky="w")
+        self.year_menu = ttk.OptionMenu(self, self.year_var, self.year_var.get(), *self.year_range,
+                                        command=self._on_year_or_month_change)
+        self.year_menu.grid(row=0, column=1, **pad, sticky="ew")
+
+        # Month
+        ttk.Label(self, text="Month:").grid(row=1, column=0, **pad, sticky="w")
+        months = list(range(1, 13))
+        self.month_menu = ttk.OptionMenu(self, self.month_var, self.month_var.get(), *months,
+                                         command=self._on_year_or_month_change)
+        self.month_menu.grid(row=1, column=1, **pad, sticky="ew")
+
+        # Day
+        ttk.Label(self, text="Day:").grid(row=2, column=0, **pad, sticky="w")
+        self.day_menu = ttk.OptionMenu(self, self.day_var, self.day_var.get(),
+                                       *self._days_for(self.year_var.get(), self.month_var.get()))
+        self.day_menu.grid(row=2, column=1, **pad, sticky="ew")
+
+        # Run button
+        self.run_btn = ttk.Button(self, text="Go", command=self._on_run)
+        self.run_btn.grid(row=3, column=0, columnspan=2, pady=(10, 10))
+
+        # Center the window
+        self.update_idletasks()
+        w = self.winfo_width();
+        h = self.winfo_height()
+        ws = self.winfo_screenwidth();
+        hs = self.winfo_screenheight()
+        x = (ws // 2) - (w // 2);
+        y = (hs // 2) - (h // 2)
+        self.geometry(f"+{x}+{y}")
+
+    def _days_for(self, year: int, month: int):
+        last = calendar.monthrange(year, month)[1]
+        return list(range(1, last + 1))
+
+    def _update_day_menu(self):
+        year = int(self.year_var.get())
+        month = int(self.month_var.get())
+        days = self._days_for(year, month)
+        menu = self.day_menu["menu"]
+        menu.delete(0, "end")
+        for d in days:
+            menu.add_command(label=d, command=lambda v=d: self.day_var.set(v))
+        if self.day_var.get() > days[-1]:
+            self.day_var.set(days[-1])
+
+    def _on_year_or_month_change(self, _=None):
+        self._update_day_menu()
+
+    def _set_processing_state(self, processing: bool):
+        """Enable/disable controls and change button text."""
+        state = "disabled" if processing else "normal"
+        try:
+            self.year_menu.configure(state=state)
+            self.month_menu.configure(state=state)
+            self.day_menu.configure(state=state)
+        except Exception:
+            pass
+        self.run_btn.configure(text="Traitement en cours..." if processing else "Run", state=state)
+
+    def _on_run(self):
+        """
+        Simple (non-threaded) run:
+        - disable UI and change label
+        - force UI update so the change is visible
+        - call user_function (runs in main thread; GUI will be unresponsive while it runs)
+        - re-enable UI and show result
+        """
+        try:
+            y = int(self.year_var.get())
+            m = int(self.month_var.get())
+            d = int(self.day_var.get())
+            chosen = datetime.date(y, m, d)
+        except Exception as e:
+            messagebox.showerror("Invalid date", f"Could not build date: {e}")
+            return
+
+        # Disable UI and change label
+        self._set_processing_state(True)
+        # Force the GUI to process the change so user sees the "Processing..." label
+        self.update_idletasks()
+        self.update()
+
+        # Call the user function (this will block the GUI if it takes long)
+        try:
+            locale.setlocale(locale.LC_TIME, "fr_FR.UTF-8")
+            for pdf_file in os.listdir('plannings_mensuels'):
+                main(os.path.join('plannings_mensuels', pdf_file), chosen_date=chosen)
+            shutil.rmtree("crop_cell")
+            shutil.rmtree("extracted_images")
+        except Exception as e:
+            # Re-enable UI before showing error
+            self._set_processing_state(False)
+            return
+
+        # Re-enable UI and show result
+        self._set_processing_state(False)
 
 
 def is_right_color(cell_image_path, reference_color):
@@ -64,32 +184,64 @@ def extract_cells():
                 f"crop_cell/page{image_path.split('page')[-1].split('_')[0]}_cell_{image_path.split('page')[-1].split('Image')[1].split('.')[0]}_{j}.png",
                 cell)
 
+
 def add_to_table(table_data, story, rowHeights):
     table = Table(table_data, colWidths=[160, 70, 140, 120], rowHeights=rowHeights)
     table.setStyle(TableStyle([
-    # Outer borders
-    ('BOX', (0,0), (-1,-1), 1, colors.black),
+        # Outer borders
+        ('BOX', (0, 0), (-1, -1), 1, colors.black),
 
-    # Vertical lines between columns
-    ('LINEBEFORE', (1,0), (1,-1), 1, colors.black),
-    ('LINEBEFORE', (2,0), (2,-1), 1, colors.black),
+        # Vertical lines between columns
+        ('LINEBEFORE', (1, 0), (1, -1), 1, colors.black),
+        ('LINEBEFORE', (2, 0), (2, -1), 1, colors.black),
 
-    # Horizontal lines only inside right part (time + name)
-    ('LINEABOVE', (1,1), (-1,-1), 0.5, colors.black),
+        # Horizontal lines only inside right part (time + name)
+        ('LINEABOVE', (1, 1), (-1, -1), 0.5, colors.black),
 
-    # Merge unit cells vertically
-    ('SPAN', (0,0), (0,len(table_data)-1)),
+        # Merge unit cells vertically
+        ('SPAN', (0, 0), (0, len(table_data) - 1)),
 
-    # Center vertically & add padding
-    ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-    ('LEFTPADDING', (0,0), (-1,-1), 6),
-    ('RIGHTPADDING', (0,0), (-1,-1), 6),
+        # Center vertically & add padding
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
     ]))
     story.append(table)
     story.append(Spacer(1, 12))
 
 
-def main(pdf_file):
+def build_document(story, day, units_list, styles, units, rowHeights):
+    story.append(Paragraph(f"<b>{day}</b>", styles["Title"]))
+    story.append(Spacer(1, 12))
+
+    for unit in units_list:
+        shifts = units[unit]
+        rows = []
+        for i, [[hour, color_code], name] in enumerate(shifts):
+            if i == 0:
+                rows.append([
+                    unit,
+                    Paragraph(
+                        f'<b><font color="rgb({color_code[-1]}, {color_code[1]}, {color_code[0]})">{hour}</font></b>',
+                        styles["Normal"]),
+                    name,
+                    ""
+                ])
+            else:
+                rows.append([
+                    "",
+                    Paragraph(
+                        f'<b><font color="rgb({color_code[-1]}, {color_code[1]}, {color_code[0]})">{hour}</font></b>',
+                        styles["Normal"]),
+                    name,
+                    ""
+                ])
+        if len(rows) == 0:
+            continue
+        add_to_table(rows, story, rowHeights)
+
+
+def main(pdf_file, chosen_date=None):
     extract_images(pdf_file)
     extract_cells()
 
@@ -109,7 +261,9 @@ def main(pdf_file):
                 ('9:00-16:00', np.array([250, 255, 120]))],
         'NUI': [('9:00-12:00', np.array([120, 120, 70])), ('13:00-16:30', np.array([140, 255, 50])),
                 ('8:30-12:00', np.array([0, 130, 250])), ('20:00-8:00', np.array([120, 20, 200])),
-                ('20:00-8:00', np.array([180, 120, 130]))]
+                ('20:00-8:00', np.array([180, 120, 130]))],
+        'ASI': [('h1-h4/lc-lg', np.array([180, 120, 10])), ('h2-h5', np.array([250, 5, 250])),
+                ('la-lh', np.array([180, 125, 255]))]
     }
     mounths = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre",
                "Novembre", "Décembre"]
@@ -124,7 +278,7 @@ def main(pdf_file):
     day_number = 0
 
     while processed_date_day <= int(upper_date.split('/')[0]):
-        date = datetime(int(dates.split('/')[-1]), int(dates.split('/')[1]), processed_date_day)
+        date = datetime.datetime(int(dates.split('/')[-1]), int(dates.split('/')[1]), processed_date_day)
         day_name = date.strftime("%A").capitalize()
         planning[f"{day_name} {processed_date_day} {mounths[int(dates.split('/')[1]) - 1]} {dates.split('/')[-1]}"] = {}
         for page_number, table in enumerate(tables):
@@ -135,9 +289,11 @@ def main(pdf_file):
                 name_list = name_list[name_list != '']
                 if len(name_list) == 0:
                     continue
-                planning[
-                    f"{day_name} {processed_date_day} {mounths[int(dates.split('/')[1]) - 1]} {dates.split('/')[-1]}"][
-                    title.split('\n')[-1]] = []
+                if title.split('\n')[-1] not in planning[
+                    f"{day_name} {processed_date_day} {mounths[int(dates.split('/')[1]) - 1]} {dates.split('/')[-1]}"]:
+                    planning[
+                        f"{day_name} {processed_date_day} {mounths[int(dates.split('/')[1]) - 1]} {dates.split('/')[-1]}"][
+                        title.split('\n')[-1]] = []
                 for color_code in color_codes[service]:
                     for i, name in enumerate(name_list):
                         if is_right_color(f"crop_cell/page{page_number + 1}_cell_{i + 2}_{day_number}.png",
@@ -148,61 +304,34 @@ def main(pdf_file):
 
         processed_date_day += 1
         day_number += 1
-
-    doc = SimpleDocTemplate(f"planning_{dates.split('/')[1]}-{dates.split('/')[-1]}.pdf", pagesize=A4)
+    if chosen_date:
+        doc = SimpleDocTemplate(f"planning_{chosen_date.day}-{dates.split('/')[1]}-{dates.split('/')[-1]}.pdf",
+                                pagesize=A4)
+    else:
+        doc = SimpleDocTemplate(f"planning_{dates.split('/')[1]}-{dates.split('/')[-1]}.pdf", pagesize=A4)
     styles = getSampleStyleSheet()
     story = []
     rowHeights = 18
     units_list = ['INF - Infirmerie Jour', 'ARO - Unité de vie Aromates', 'LAV - Unité de vie Lavande',
-                  'ORA - Unité de vie Orangeraie',
-                  'ROS - Unité de vie Rose', 'TUL - Unité de vie Tulipe', 'VLT - Volants', 'NUI - Nuit']
+                  'ORA - Unité de vie Orangeraie', 'ROS - Unité de vie Rose', 'TUL - Unité de vie Tulipe',
+                  'VLT - Volants', 'NUI - Nuit', 'ASI - Hôtellerie']
 
-    for idx, (day, units) in enumerate(planning.items()):
-        story.append(Paragraph(f"<b>{day}</b>", styles["Title"]))
-        story.append(Spacer(1, 12))
+    if chosen_date:
+        chosen_day_name = chosen_date.strftime("%A").capitalize()
+        day = f"{chosen_day_name} {chosen_date.day} {mounths[chosen_date.month - 1]} {chosen_date.year}"
+        units = planning[day]
+        build_document(story, day, units_list, styles, units, rowHeights)
 
-        for unit in units_list:
-            shifts = units[unit]
-            rows = []
-            for i, [[hour, color_code], name] in enumerate(shifts):
-                if i == 0:
-                    rows.append([
-                        unit,
-                        Paragraph(
-                            f'<b><font color="rgb({color_code[-1]}, {color_code[1]}, {color_code[0]})">{hour}</font></b>',
-                            styles["Normal"]),
-                        name,
-                        ""
-                    ])
-                else:
-                    rows.append([
-                        "",
-                        Paragraph(
-                            f'<b><font color="rgb({color_code[-1]}, {color_code[1]}, {color_code[0]})">{hour}</font></b>',
-                            styles["Normal"]),
-                        name,
-                        ""
-                    ])
-            if len(rows) == 0:
-                continue
-            add_to_table(rows, story, rowHeights)
+    else:
+        for idx, (day, units) in enumerate(planning.items()):
+            build_document(story, day, units_list, styles, units, rowHeights)
 
-        table_data = [["ASI - Hôtellerie", "", "", ""], ["", "", "", ""], ["", "", "", ""], ["", "", "", ""],
-                      ["", "", "", ""]]
-        add_to_table(table_data, story, rowHeights)
-
-        table_data = [["LINGERES", "", "", ""], ["", "", "", ""]]
-        add_to_table(table_data, story, rowHeights)
-
-        if idx < len(planning) - 1:
-            story.append(PageBreak())
+            if idx < len(planning) - 1:
+                story.append(PageBreak())
 
     doc.build(story)
 
 
 if __name__ == "__main__":
-    locale.setlocale(locale.LC_TIME, "fr_FR.UTF-8")
-    for pdf_file in os.listdir('plannings_mensuels'):
-        main(os.path.join('plannings_mensuels', pdf_file))
-    shutil.rmtree("crop_cell")
-    shutil.rmtree("extracted_images")
+    app = SimpleDatePicker()
+    app.mainloop()
