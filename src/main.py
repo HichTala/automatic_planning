@@ -10,126 +10,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 import shutil
 
-import tkinter as tk
-from tkinter import ttk, messagebox
 import datetime
-import calendar
-
-
-class SimpleDatePicker(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        self.title("Planning Auto")
-        self.resizable(False, False)
-        pad = {"padx": 8, "pady": 6}
-
-        today = datetime.date.today()
-        self.year_range = list(range(today.year - 50, today.year + 11))
-
-        # Variables
-        self.year_var = tk.IntVar(value=today.year)
-        self.month_var = tk.IntVar(value=today.month)
-        self.day_var = tk.IntVar(value=today.day)
-
-        # Year
-        ttk.Label(self, text="Year:").grid(row=0, column=0, **pad, sticky="w")
-        self.year_menu = ttk.OptionMenu(self, self.year_var, self.year_var.get(), *self.year_range,
-                                        command=self._on_year_or_month_change)
-        self.year_menu.grid(row=0, column=1, **pad, sticky="ew")
-
-        # Month
-        ttk.Label(self, text="Month:").grid(row=1, column=0, **pad, sticky="w")
-        months = list(range(1, 13))
-        self.month_menu = ttk.OptionMenu(self, self.month_var, self.month_var.get(), *months,
-                                         command=self._on_year_or_month_change)
-        self.month_menu.grid(row=1, column=1, **pad, sticky="ew")
-
-        # Day
-        ttk.Label(self, text="Day:").grid(row=2, column=0, **pad, sticky="w")
-        self.day_menu = ttk.OptionMenu(self, self.day_var, self.day_var.get(),
-                                       *self._days_for(self.year_var.get(), self.month_var.get()))
-        self.day_menu.grid(row=2, column=1, **pad, sticky="ew")
-
-        # Run button
-        self.run_btn = ttk.Button(self, text="Go", command=self._on_run)
-        self.run_btn.grid(row=3, column=0, columnspan=2, pady=(10, 10))
-
-        # Center the window
-        self.update_idletasks()
-        w = self.winfo_width();
-        h = self.winfo_height()
-        ws = self.winfo_screenwidth();
-        hs = self.winfo_screenheight()
-        x = (ws // 2) - (w // 2);
-        y = (hs // 2) - (h // 2)
-        self.geometry(f"+{x}+{y}")
-
-    def _days_for(self, year: int, month: int):
-        last = calendar.monthrange(year, month)[1]
-        return list(range(1, last + 1))
-
-    def _update_day_menu(self):
-        year = int(self.year_var.get())
-        month = int(self.month_var.get())
-        days = self._days_for(year, month)
-        menu = self.day_menu["menu"]
-        menu.delete(0, "end")
-        for d in days:
-            menu.add_command(label=d, command=lambda v=d: self.day_var.set(v))
-        if self.day_var.get() > days[-1]:
-            self.day_var.set(days[-1])
-
-    def _on_year_or_month_change(self, _=None):
-        self._update_day_menu()
-
-    def _set_processing_state(self, processing: bool):
-        """Enable/disable controls and change button text."""
-        state = "disabled" if processing else "normal"
-        try:
-            self.year_menu.configure(state=state)
-            self.month_menu.configure(state=state)
-            self.day_menu.configure(state=state)
-        except Exception:
-            pass
-        self.run_btn.configure(text="Traitement en cours..." if processing else "Run", state=state)
-
-    def _on_run(self):
-        """
-        Simple (non-threaded) run:
-        - disable UI and change label
-        - force UI update so the change is visible
-        - call user_function (runs in main thread; GUI will be unresponsive while it runs)
-        - re-enable UI and show result
-        """
-        try:
-            y = int(self.year_var.get())
-            m = int(self.month_var.get())
-            d = int(self.day_var.get())
-            chosen = datetime.date(y, m, d)
-        except Exception as e:
-            messagebox.showerror("Invalid date", f"Could not build date: {e}")
-            return
-
-        # Disable UI and change label
-        self._set_processing_state(True)
-        # Force the GUI to process the change so user sees the "Processing..." label
-        self.update_idletasks()
-        self.update()
-
-        # Call the user function (this will block the GUI if it takes long)
-        try:
-            locale.setlocale(locale.LC_TIME, "fr_FR.UTF-8")
-            for pdf_file in os.listdir('plannings_mensuels'):
-                main(os.path.join('plannings_mensuels', pdf_file), chosen_date=chosen)
-            shutil.rmtree("crop_cell")
-            shutil.rmtree("extracted_images")
-        except Exception as e:
-            # Re-enable UI before showing error
-            self._set_processing_state(False)
-            return
-
-        # Re-enable UI and show result
-        self._set_processing_state(False)
 
 
 def is_right_color(cell_image_path, reference_color):
@@ -333,5 +214,8 @@ def main(pdf_file, chosen_date=None):
 
 
 if __name__ == "__main__":
-    app = SimpleDatePicker()
-    app.mainloop()
+    locale.setlocale(locale.LC_TIME, "fr_FR.UTF-8")
+    for pdf_file in os.listdir('plannings_mensuels'):
+        main(os.path.join('plannings_mensuels', pdf_file))
+    shutil.rmtree("crop_cell")
+    shutil.rmtree("extracted_images")
