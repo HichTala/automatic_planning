@@ -27,27 +27,12 @@ class SimpleDatePicker(tk.Tk):
         self.year_range = list(range(today.year - 50, today.year + 11))
 
         # Variables
-        self.year_var = tk.IntVar(value=today.year)
-        self.month_var = tk.IntVar(value=today.month)
-        self.day_var = tk.IntVar(value=today.day)
-
-        # Year
-        ttk.Label(self, text="Year:").grid(row=0, column=0, **pad, sticky="w")
-        self.year_menu = ttk.OptionMenu(self, self.year_var, self.year_var.get(), *self.year_range,
-                                        command=self._on_year_or_month_change)
-        self.year_menu.grid(row=0, column=1, **pad, sticky="ew")
-
-        # Month
-        ttk.Label(self, text="Month:").grid(row=1, column=0, **pad, sticky="w")
-        months = list(range(1, 13))
-        self.month_menu = ttk.OptionMenu(self, self.month_var, self.month_var.get(), *months,
-                                         command=self._on_year_or_month_change)
-        self.month_menu.grid(row=1, column=1, **pad, sticky="ew")
+        self.day_var = tk.StringVar(value=str(today.day))
 
         # Day
-        ttk.Label(self, text="Day:").grid(row=2, column=0, **pad, sticky="w")
+        ttk.Label(self, text="Jour:").grid(row=2, column=0, **pad, sticky="w")
         self.day_menu = ttk.OptionMenu(self, self.day_var, self.day_var.get(),
-                                       *self._days_for(self.year_var.get(), self.month_var.get()))
+                                       *['mois complet'] + list(range(1, 32)))
         self.day_menu.grid(row=2, column=1, **pad, sticky="ew")
 
         # Run button
@@ -56,17 +41,13 @@ class SimpleDatePicker(tk.Tk):
 
         # Center the window
         self.update_idletasks()
-        w = self.winfo_width();
+        w = self.winfo_width()
         h = self.winfo_height()
-        ws = self.winfo_screenwidth();
+        ws = self.winfo_screenwidth()
         hs = self.winfo_screenheight()
         x = (ws // 2) - (w // 2);
         y = (hs // 2) - (h // 2)
         self.geometry(f"+{x}+{y}")
-
-    def _days_for(self, year: int, month: int):
-        last = calendar.monthrange(year, month)[1]
-        return list(range(1, last + 1))
 
     def _update_day_menu(self):
         year = int(self.year_var.get())
@@ -101,14 +82,10 @@ class SimpleDatePicker(tk.Tk):
         - call user_function (runs in main thread; GUI will be unresponsive while it runs)
         - re-enable UI and show result
         """
-        try:
-            y = int(self.year_var.get())
-            m = int(self.month_var.get())
-            d = int(self.day_var.get())
-            chosen = datetime.date(y, m, d)
-        except Exception as e:
-            messagebox.showerror("Invalid date", f"Could not build date: {e}")
-            return
+        if self.day_var.get() == 'mois complet':
+            chosen_day = None
+        else:
+            chosen_day = int(self.day_var.get())
 
         # Disable UI and change label
         self._set_processing_state(True)
@@ -120,7 +97,7 @@ class SimpleDatePicker(tk.Tk):
         try:
             locale.setlocale(locale.LC_TIME, "fr_FR.UTF-8")
             for pdf_file in os.listdir('plannings_mensuels'):
-                main(os.path.join('plannings_mensuels', pdf_file), chosen_date=chosen)
+                main(os.path.join('plannings_mensuels', pdf_file), chosen_day=chosen_day)
             shutil.rmtree("crop_cell")
             shutil.rmtree("extracted_images")
         except Exception as e:
@@ -140,7 +117,7 @@ def is_right_color(cell_image_path, reference_color):
     except TypeError:
         breakpoint()
 
-    return 25000 < mask.sum()
+    return 20000 < mask.sum()
 
 
 def extract_images(pdf_file):
@@ -241,7 +218,7 @@ def build_document(story, day, units_list, styles, units, rowHeights):
         add_to_table(rows, story, rowHeights)
 
 
-def main(pdf_file, chosen_date=None):
+def main(pdf_file, chosen_day=None):
     extract_images(pdf_file)
     extract_cells()
 
@@ -304,8 +281,8 @@ def main(pdf_file, chosen_date=None):
 
         processed_date_day += 1
         day_number += 1
-    if chosen_date:
-        doc = SimpleDocTemplate(f"planning_{chosen_date.day}-{dates.split('/')[1]}-{dates.split('/')[-1]}.pdf",
+    if chosen_day:
+        doc = SimpleDocTemplate(f"planning_{chosen_day}-{dates.split('/')[1]}-{dates.split('/')[-1]}.pdf",
                                 pagesize=A4)
     else:
         doc = SimpleDocTemplate(f"planning_{dates.split('/')[1]}-{dates.split('/')[-1]}.pdf", pagesize=A4)
@@ -315,10 +292,9 @@ def main(pdf_file, chosen_date=None):
     units_list = ['INF - Infirmerie Jour', 'ARO - Unité de vie Aromates', 'LAV - Unité de vie Lavande',
                   'ORA - Unité de vie Orangeraie', 'ROS - Unité de vie Rose', 'TUL - Unité de vie Tulipe',
                   'VLT - Volants', 'NUI - Nuit', 'ASI - Hôtellerie']
-
-    if chosen_date:
-        chosen_day_name = chosen_date.strftime("%A").capitalize()
-        day = f"{chosen_day_name} {chosen_date.day} {mounths[chosen_date.month - 1]} {chosen_date.year}"
+    if chosen_day:
+        chosen_day_name = datetime.date(int(dates.split('/')[-1]), int(dates.split('/')[1]), chosen_day).strftime("%A").capitalize()
+        day = f"{chosen_day_name} {chosen_day} {mounths[int(dates.split('/')[1]) - 1]} {dates.split('/')[-1]}"
         units = planning[day]
         build_document(story, day, units_list, styles, units, rowHeights)
 
