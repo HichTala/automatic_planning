@@ -7,14 +7,11 @@ on:
 
 jobs:
   build:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -29,12 +26,12 @@ jobs:
 
       - name: Build executable
         run: |
-          pyinstaller --noconsole --onefile src/main.py --name planning
+          pyinstaller --noconsole --clean --noconfirm --noupx --uac-admin --onefile src/main.py --name planning
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: executable-${{ matrix.os }}
+          name: executable-windows
           path: dist/
 
   release:
@@ -45,7 +42,7 @@ jobs:
 
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           path: dist
 

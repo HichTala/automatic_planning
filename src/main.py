@@ -72,7 +72,7 @@ class SimpleDatePicker(tk.Tk):
             self.day_menu.configure(state=state)
         except Exception:
             pass
-        self.run_btn.configure(text="Traitement en cours..." if processing else "Run", state=state)
+        self.run_btn.configure(text="Traitement en cours..." if processing else "Go", state=state)
 
     def _on_run(self):
         """
@@ -113,11 +113,11 @@ def is_right_color(cell_image_path, reference_color):
     try:
         cell_image = cv2.imread(cell_image_path)
         distance = np.linalg.norm(cell_image - reference_color, axis=2)
-        mask = np.uint8((distance < 50) * 255)
+        mask = np.uint8((distance < 40) * 255)
     except TypeError:
         breakpoint()
 
-    return 20000 < mask.sum()
+    return 23500 < mask.sum(), mask.sum()
 
 
 def extract_images(pdf_file):
@@ -163,7 +163,7 @@ def extract_cells():
 
 
 def add_to_table(table_data, story, rowHeights):
-    table = Table(table_data, colWidths=[160, 70, 140, 120], rowHeights=rowHeights)
+    table = Table(table_data, colWidths=[110, 150, 70, 120], rowHeights=rowHeights)
     table.setStyle(TableStyle([
         # Outer borders
         ('BOX', (0, 0), (-1, -1), 1, colors.black),
@@ -223,24 +223,26 @@ def main(pdf_file, chosen_day=None):
     extract_cells()
 
     planning = {}
+    add_to_planning = {}
+    name_value = {}
     color_codes = {
-        'ARO': [('7:30-19:30', np.array([180, 120, 10])), ('8:30-20:30', np.array([130, 130, 250])),
-                ('9:00-16:00', np.array([250, 255, 120]))],
-        'LAV': [('7:30-19:30', np.array([180, 120, 10])), ('8:30-20:30', np.array([130, 130, 250]))],
-        'ORA': [('7:30-19:30', np.array([180, 120, 10])), ('8:30-20:30', np.array([130, 130, 250])),
-                ('9:00-16:00', np.array([250, 255, 120]))],
-        'ROS': [('7:30-19:30', np.array([180, 120, 10])), ('8:30-20:30', np.array([130, 130, 250])),
-                ('7:30-14:30', np.array([140, 255, 255])), ('7:30-14:30', np.array([0, 130, 250]))],
-        'TUL': [('7:30-19:30', np.array([180, 120, 10])), ('8:30-20:30', np.array([130, 130, 250])),
-                ('9:00-16:00', np.array([250, 255, 120]))],
-        'VLT': [('7:30-14:30', np.array([180, 120, 10]))],
-        'INF': [('8:00-20:00', np.array([45, 240, 230])), ('20:00-8:00', np.array([120, 20, 200])),
-                ('9:00-16:00', np.array([250, 255, 120]))],
-        'NUI': [('9:00-12:00', np.array([120, 120, 70])), ('13:00-16:30', np.array([140, 255, 50])),
-                ('8:30-12:00', np.array([0, 130, 250])), ('20:00-8:00', np.array([120, 20, 200])),
-                ('20:00-8:00', np.array([180, 120, 130]))],
-        'ASI': [('h1-h4/lc-lg', np.array([180, 120, 10])), ('h2-h5', np.array([250, 5, 250])),
-                ('la-lh', np.array([180, 125, 255]))]
+        'NUI': [('20:10-7:50', np.array([16, 250, 10]))],
+        'REP': [('7~8:30-19~20:30', np.array([220, 242, 153]))],
+        'SO': [('21:00-6:30', np.array([8, 244, 255])), ('8:15:20:15', np.array([142, 136, 255])),
+               ('20:15:8:15', np.array([67, 125, 251])), ('7:45-19:45', np.array([126, 254, 135])),
+               ('8:00-20:00', np.array([220, 242, 153])), #('7:30-13:30', np.array([16, 250, 10])),
+               ('20:00-8:00', np.array([255, 250, 0])), ('8:30-16:30', np.array([194, 129, 0])),
+               ('9:00-15:30', np.array([181, 127, 127])),
+               ('7~8:30-19~20:30 | 19:45-7:45', np.array([255, 131, 255]))],
+        'UNA': [('7~8:30-19~20:30', np.array([220, 242, 153])), ('7:30-17:30', np.array([125, 253, 120])), ('7:30-19:30', np.array([67, 125, 251]))],
+        'UNB': [('7~8:30-19~20:30', np.array([220, 242, 153])), ('7:30-17:30', np.array([125, 253, 120])), ('7:30-19:30', np.array([67, 125, 251]))],
+        'UNC': [('7~8:30-19~20:30', np.array([220, 242, 153])), ('7:30-17:30', np.array([125, 253, 120])), ('7:30-19:30', np.array([67, 125, 251]))],
+        'UND': [('7~8:30-19~20:30', np.array([220, 242, 153])), ('7:30-17:30', np.array([125, 253, 120])), ('7:30-19:30', np.array([67, 125, 251]))],
+        'UNE': [('7~8:30-19~20:30', np.array([220, 242, 153])), ('7:30-17:30', np.array([125, 253, 120])), ('7:30-19:30', np.array([67, 125, 251]))],
+        'UNF': [('7~8:30-19~20:30', np.array([220, 242, 153])), ('7:30-17:30', np.array([125, 253, 120])), ('7:30-19:30', np.array([67, 125, 251]))],
+        'UNG': [('7~8:30-19~20:30', np.array([220, 242, 153])), ('7:30-17:30', np.array([125, 253, 120])), ('7:30-19:30', np.array([67, 125, 251]))],
+        'VIE': [('8:15-17:15', np.array([125, 253, 120])), ('9:00-17:00', np.array([8, 244, 255])),
+                ('9:00-18:00', np.array([160, 255, 243]))],
     }
     mounths = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre",
                "Novembre", "Décembre"]
@@ -253,6 +255,7 @@ def main(pdf_file, chosen_day=None):
     lower_date = dates.split(' ')[1]
     processed_date_day = int(lower_date.split('/')[0])
     day_number = 0
+    last_service = None
 
     while processed_date_day <= int(upper_date.split('/')[0]):
         date = datetime.datetime(int(dates.split('/')[-1]), int(dates.split('/')[1]), processed_date_day)
@@ -273,11 +276,26 @@ def main(pdf_file, chosen_day=None):
                         title.split('\n')[-1]] = []
                 for color_code in color_codes[service]:
                     for i, name in enumerate(name_list):
-                        if is_right_color(f"crop_cell/page{page_number + 1}_cell_{i + 2}_{day_number}.png",
-                                          color_code[1]):
-                            planning[
-                                f"{day_name} {processed_date_day} {mounths[int(dates.split('/')[1]) - 1]} {dates.split('/')[-1]}"][
-                                title.split('\n')[-1]].append([color_code, name.split('\n')[0]])
+                        if service == "SO" and len(name.split('\n')) > 2 and name.split('\n')[1] != 'INFIR':
+                            continue
+                        color_results = is_right_color(f"crop_cell/page{page_number + 1}_cell_{i + 2}_{day_number}.png",
+                                          color_code[1])
+                        if color_results[0]:
+                            if service not in add_to_planning.keys():
+                                add_to_planning[service] = {}
+                                name_value[service] = {}
+                            if name.split('\n')[0] not in add_to_planning[service].keys():
+                                add_to_planning[service][name.split('\n')[0]] = color_code
+                                name_value[service][name.split('\n')[0]] = color_results[1]
+                            else:
+                                if name_value[service][name.split('\n')[0]] < color_results[1]:
+                                    add_to_planning[service][name.split('\n')[0]] = color_code
+                                    name_value[service][name.split('\n')[0]] = color_results[1]
+                planning[
+                    f"{day_name} {processed_date_day} {mounths[int(dates.split('/')[1]) - 1]} {dates.split('/')[-1]}"][
+                    title.split('\n')[-1]] = [[c, n] for n, c in add_to_planning[service].items()]
+        add_to_planning = {}
+        name_value = {}
 
         processed_date_day += 1
         day_number += 1
@@ -289,9 +307,8 @@ def main(pdf_file, chosen_day=None):
     styles = getSampleStyleSheet()
     story = []
     rowHeights = 18
-    units_list = ['INF - Infirmerie Jour', 'ARO - Unité de vie Aromates', 'LAV - Unité de vie Lavande',
-                  'ORA - Unité de vie Orangeraie', 'ROS - Unité de vie Rose', 'TUL - Unité de vie Tulipe',
-                  'VLT - Volants', 'NUI - Nuit', 'ASI - Hôtellerie']
+    units_list = ['NUI - NUIT', 'SO - SOINS', 'UNA - UNITE A', 'UNB - UNITE B', 'UNC - UNITE C',
+                  'UND - UNITE D', 'UNE - UNITE E', 'UNF - UNITE F', 'UNG - UNITE G']
     if chosen_day:
         chosen_day_name = datetime.date(int(dates.split('/')[-1]), int(dates.split('/')[1]), chosen_day).strftime("%A").capitalize()
         day = f"{chosen_day_name} {chosen_day} {mounths[int(dates.split('/')[1]) - 1]} {dates.split('/')[-1]}"
@@ -309,5 +326,8 @@ def main(pdf_file, chosen_day=None):
 
 
 if __name__ == "__main__":
-    app = SimpleDatePicker()
-    app.mainloop()
+    # app = SimpleDatePicker()
+    # app.mainloop()
+
+    for pdf_file in os.listdir('plannings_mensuels'):
+        main(os.path.join('plannings_mensuels', pdf_file))
