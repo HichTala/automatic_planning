@@ -269,6 +269,10 @@ def main(pdf_file, chosen_day=None):
             print(color_codes.keys())
             if service in color_codes.keys():
                 print(table.df[0])
+                print(table.df[0][0])
+                print(table.df[0][1])
+                print(table.df[0][2])
+                print(table.df[0][3])
                 name_list = np.array(table.df[0][2::])
                 print(name_list)
                 name_list = name_list[name_list != '']
