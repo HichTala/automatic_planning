@@ -263,22 +263,11 @@ def main(pdf_file, chosen_day=None):
         day_name = date.strftime("%A").capitalize()
         planning[f"{day_name} {processed_date_day} {mounths[int(dates.split('/')[1]) - 1]} {dates.split('/')[-1]}"] = {}
         for page_number, table in enumerate(tables):
-            print(len(tables))
-            print(page_number)
             title = table.df[0][0]
             service = title.split('\n')[-1].split(' ')[0]
-            print(service)
-            print(color_codes.keys())
             if service in color_codes.keys():
-                print(table.df[0])
-                print(table.df[0][0])
-                print(table.df[0][1])
-                print(table.df[0][2])
-                print(table.df[0][3])
                 name_list = np.array(table.df[0][2::])
-                print(name_list)
                 name_list = name_list[name_list != '']
-                print(name_list)
                 if len(name_list) == 0:
                     continue
                 if title.split('\n')[-1] not in planning[
@@ -286,9 +275,7 @@ def main(pdf_file, chosen_day=None):
                     planning[
                         f"{day_name} {processed_date_day} {mounths[int(dates.split('/')[1]) - 1]} {dates.split('/')[-1]}"][
                         title.split('\n')[-1]] = []
-                print(color_codes[service])
                 for color_code in color_codes[service]:
-                    print(name_list)
                     for i, name in enumerate(name_list):
                         if service == "SO" and len(name.split('\n')) > 2 and name.split('\n')[1] != 'INFIR':
                             continue
@@ -308,10 +295,8 @@ def main(pdf_file, chosen_day=None):
                 planning[
                     f"{day_name} {processed_date_day} {mounths[int(dates.split('/')[1]) - 1]} {dates.split('/')[-1]}"][
                     title.split('\n')[-1]] = [[c, n] for n, c in add_to_planning[service].items()]
-                print("+1")
         add_to_planning = {}
         name_value = {}
-        print(planning)
 
         processed_date_day += 1
         day_number += 1
@@ -325,7 +310,6 @@ def main(pdf_file, chosen_day=None):
     rowHeights = 18
     units_list = ['NUI - NUIT', 'SO - SOINS', 'UNA - UNITE A', 'UNB - UNITE B', 'UNC - UNITE C',
                   'UND - UNITE D', 'UNE - UNITE E', 'UNF - UNITE F', 'UNG - UNITE G']
-    print(planning)
     if chosen_day:
         chosen_day_name = datetime.date(int(dates.split('/')[-1]), int(dates.split('/')[1]), chosen_day).strftime("%A").capitalize()
         day = f"{chosen_day_name} {chosen_day} {mounths[int(dates.split('/')[1]) - 1]} {dates.split('/')[-1]}"
@@ -334,8 +318,6 @@ def main(pdf_file, chosen_day=None):
 
     else:
         for idx, (day, units) in enumerate(planning.items()):
-            print(units_list)
-            print(units)
             build_document(story, day, units_list, styles, units, rowHeights)
 
             if idx < len(planning) - 1:
@@ -350,6 +332,3 @@ if __name__ == "__main__":
 
     for pdf_file in os.listdir('plannings_mensuels'):
         main(os.path.join('plannings_mensuels', pdf_file))
-
-    for i in range(1000000000):
-        pass

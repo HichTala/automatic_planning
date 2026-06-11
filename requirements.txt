@@ -1,4 +1,4 @@
-camelot_py
+camelot_py==1.0.9
 PyMuPDF
 numpy
 opencv_python
