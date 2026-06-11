@@ -26,7 +26,7 @@ jobs:
 
       - name: Build executable
         run: |
-          pyinstaller --noconsole --clean --noconfirm --noupx --uac-admin --onefile  --hidden-import=playwright._impl --hidden-import=playwright.async_api --hidden-import=playwright.sync_api --hidden-import='49480697f7d29e053205__mypyc' src/main.py --name planning
+          pyinstaller --clean --noconfirm --noupx --uac-admin --onefile  --hidden-import=playwright._impl --hidden-import=playwright.async_api --hidden-import=playwright.sync_api --hidden-import='49480697f7d29e053205__mypyc' src/main.py --name planning
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
