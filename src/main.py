@@ -263,6 +263,8 @@ def main(pdf_file, chosen_day=None):
         day_name = date.strftime("%A").capitalize()
         planning[f"{day_name} {processed_date_day} {mounths[int(dates.split('/')[1]) - 1]} {dates.split('/')[-1]}"] = {}
         for page_number, table in enumerate(tables):
+            print(len(tables))
+            print(page_number)
             title = table.df[0][0]
             service = title.split('\n')[-1].split(' ')[0]
             print(service)
