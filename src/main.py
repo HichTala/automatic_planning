@@ -295,8 +295,10 @@ def main(pdf_file, chosen_day=None):
                 planning[
                     f"{day_name} {processed_date_day} {mounths[int(dates.split('/')[1]) - 1]} {dates.split('/')[-1]}"][
                     title.split('\n')[-1]] = [[c, n] for n, c in add_to_planning[service].items()]
+                print("+1")
         add_to_planning = {}
         name_value = {}
+        print(planning)
 
         processed_date_day += 1
         day_number += 1
@@ -310,6 +312,7 @@ def main(pdf_file, chosen_day=None):
     rowHeights = 18
     units_list = ['NUI - NUIT', 'SO - SOINS', 'UNA - UNITE A', 'UNB - UNITE B', 'UNC - UNITE C',
                   'UND - UNITE D', 'UNE - UNITE E', 'UNF - UNITE F', 'UNG - UNITE G']
+    print(planning)
     if chosen_day:
         chosen_day_name = datetime.date(int(dates.split('/')[-1]), int(dates.split('/')[1]), chosen_day).strftime("%A").capitalize()
         day = f"{chosen_day_name} {chosen_day} {mounths[int(dates.split('/')[1]) - 1]} {dates.split('/')[-1]}"
