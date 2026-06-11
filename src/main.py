@@ -307,7 +307,7 @@ def main(pdf_file, chosen_day=None):
         doc = SimpleDocTemplate(f"planning_{dates.split('/')[1]}-{dates.split('/')[-1]}.pdf", pagesize=A4)
     styles = getSampleStyleSheet()
     story = []
-    rowHeights = 18
+    rowHeights = 15
     units_list = ['NUI - NUIT', 'SO - SOINS', 'UNA - UNITE A', 'UNB - UNITE B', 'UNC - UNITE C',
                   'UND - UNITE D', 'UNE - UNITE E', 'UNF - UNITE F', 'UNG - UNITE G']
     if chosen_day:
@@ -327,8 +327,8 @@ def main(pdf_file, chosen_day=None):
 
 
 if __name__ == "__main__":
-    # app = SimpleDatePicker()
-    # app.mainloop()
+    app = SimpleDatePicker()
+    app.mainloop()
 
-    for pdf_file in os.listdir('plannings_mensuels'):
-        main(os.path.join('plannings_mensuels', pdf_file))
+    # for pdf_file in os.listdir('plannings_mensuels'):
+    #     main(os.path.join('plannings_mensuels', pdf_file))
