@@ -326,8 +326,8 @@ def main(pdf_file, chosen_day=None):
 
 
 if __name__ == "__main__":
-    # app = SimpleDatePicker()
-    # app.mainloop()
+    app = SimpleDatePicker()
+    app.mainloop()
 
-    for pdf_file in os.listdir('plannings_mensuels'):
-        main(os.path.join('plannings_mensuels', pdf_file))
+    # for pdf_file in os.listdir('plannings_mensuels'):
+    #     main(os.path.join('plannings_mensuels', pdf_file))
