@@ -102,6 +102,7 @@ class SimpleDatePicker(tk.Tk):
             shutil.rmtree("extracted_images")
         except Exception as e:
             # Re-enable UI before showing error
+            print(e)
             self._set_processing_state(False)
             return
 
