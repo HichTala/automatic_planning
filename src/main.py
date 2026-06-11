@@ -318,6 +318,8 @@ def main(pdf_file, chosen_day=None):
 
     else:
         for idx, (day, units) in enumerate(planning.items()):
+            print(units_list)
+            print(units)
             build_document(story, day, units_list, styles, units, rowHeights)
 
             if idx < len(planning) - 1:
