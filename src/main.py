@@ -263,15 +263,15 @@ def main(pdf_file, chosen_day=None):
         day_name = date.strftime("%A").capitalize()
         planning[f"{day_name} {processed_date_day} {mounths[int(dates.split('/')[1]) - 1]} {dates.split('/')[-1]}"] = {}
         for page_number, table in enumerate(tables):
-            print(page_number)
-            print(table.df)
             title = table.df[0][0]
             service = title.split('\n')[-1].split(' ')[0]
             print(service)
             print(color_codes.keys())
             if service in color_codes.keys():
                 name_list = np.array(table.df[0][2::])
+                print(name_list)
                 name_list = name_list[name_list != '']
+                print(name_list)
                 if len(name_list) == 0:
                     continue
                 if title.split('\n')[-1] not in planning[
