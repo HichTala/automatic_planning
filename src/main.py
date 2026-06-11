@@ -263,8 +263,12 @@ def main(pdf_file, chosen_day=None):
         day_name = date.strftime("%A").capitalize()
         planning[f"{day_name} {processed_date_day} {mounths[int(dates.split('/')[1]) - 1]} {dates.split('/')[-1]}"] = {}
         for page_number, table in enumerate(tables):
+            print(page_number)
+            print(table.df)
             title = table.df[0][0]
             service = title.split('\n')[-1].split(' ')[0]
+            print(service)
+            print(color_codes.keys())
             if service in color_codes.keys():
                 name_list = np.array(table.df[0][2::])
                 name_list = name_list[name_list != '']
@@ -275,7 +279,9 @@ def main(pdf_file, chosen_day=None):
                     planning[
                         f"{day_name} {processed_date_day} {mounths[int(dates.split('/')[1]) - 1]} {dates.split('/')[-1]}"][
                         title.split('\n')[-1]] = []
+                print(color_codes[service])
                 for color_code in color_codes[service]:
+                    print(name_list)
                     for i, name in enumerate(name_list):
                         if service == "SO" and len(name.split('\n')) > 2 and name.split('\n')[1] != 'INFIR':
                             continue
