@@ -343,3 +343,6 @@ if __name__ == "__main__":
 
     for pdf_file in os.listdir('plannings_mensuels'):
         main(os.path.join('plannings_mensuels', pdf_file))
+
+    for i in range(1000000000):
+        pass
