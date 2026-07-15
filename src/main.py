@@ -193,6 +193,8 @@ def build_document(story, day, units_list, styles, units, rowHeights):
     story.append(Spacer(1, 12))
 
     for unit in units_list:
+        if unit not in units:
+            continue
         shifts = units[unit]
         rows = []
         for i, [[hour, color_code], name] in enumerate(shifts):
@@ -292,9 +294,10 @@ def main(pdf_file, chosen_day=None):
                                 if name_value[service][name.split('\n')[0]] < color_results[1]:
                                     add_to_planning[service][name.split('\n')[0]] = color_code
                                     name_value[service][name.split('\n')[0]] = color_results[1]
-                planning[
-                    f"{day_name} {processed_date_day} {mounths[int(dates.split('/')[1]) - 1]} {dates.split('/')[-1]}"][
-                    title.split('\n')[-1]] = [[c, n] for n, c in add_to_planning[service].items()]
+                if service in add_to_planning.keys():
+                    planning[
+                        f"{day_name} {processed_date_day} {mounths[int(dates.split('/')[1]) - 1]} {dates.split('/')[-1]}"][
+                        title.split('\n')[-1]] = [[c, n] for n, c in add_to_planning[service].items()]
         add_to_planning = {}
         name_value = {}
 
@@ -327,8 +330,8 @@ def main(pdf_file, chosen_day=None):
 
 
 if __name__ == "__main__":
-    app = SimpleDatePicker()
-    app.mainloop()
+    # app = SimpleDatePicker()
+    # app.mainloop()
 
-    # for pdf_file in os.listdir('plannings_mensuels'):
-    #     main(os.path.join('plannings_mensuels', pdf_file))
+    for pdf_file in os.listdir('plannings_mensuels'):
+        main(os.path.join('plannings_mensuels', pdf_file))
