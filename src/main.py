@@ -387,7 +387,7 @@ class SimpleDatePicker(tk.Tk):
         self.update_idletasks()
 
         width = 520
-        height = 600
+        height = 620
 
         x = (self.winfo_screenwidth() - width) // 2
         y = (self.winfo_screenheight() - height) // 2
