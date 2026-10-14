@@ -11,112 +11,590 @@ from reportlab.lib import colors
 import shutil
 
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 import datetime
-import calendar
+
+import traceback
+
+
+def show_error_popup(title, error_message):
+    """Display an error in a popup window."""
+    popup = tk.Toplevel() if tk._default_root else tk.Tk()
+    popup.withdraw()
+
+    messagebox.showerror(title, error_message, parent=popup)
+
+    popup.destroy()
+    print("coucou4")
+
+
+def handle_exception(exc_type, exc_value, exc_traceback):
+    """Display uncaught exceptions in a popup."""
+    print("coucou2")
+    error_details = "".join(
+        traceback.format_exception(
+            exc_type, exc_value, exc_traceback
+        )
+    )
+
+    show_error_popup(
+        "Unexpected error",
+        f"An unexpected error occurred:\n\n"
+        f"{exc_value}\n\n"
+        f"Details:\n{error_details}"
+    )
+
+
+# Redirect uncaught exceptions to the popup
+import sys
+sys.excepthook = handle_exception
 
 
 class SimpleDatePicker(tk.Tk):
     def __init__(self):
         super().__init__()
+
+        # --------------------------------------------------
+        # Window configuration
+        # --------------------------------------------------
         self.title("Planning Auto")
-        self.resizable(False, False)
-        pad = {"padx": 8, "pady": 6}
+        self.resizable(True, True)
+        self.configure(bg="#F3F6FA")
 
-        today = datetime.date.today()
-        self.year_range = list(range(today.year - 50, today.year + 11))
+        self.selected_pdf = tk.StringVar(value="")
+        self.process_all = tk.BooleanVar(value=True)
 
+        self.today = datetime.date.today()
+
+        # --------------------------------------------------
+        # Colors
+        # --------------------------------------------------
+        self.COLORS = {
+            "background": "#F3F6FA",
+            "white": "#FFFFFF",
+            "primary": "#17365D",
+            "primary_hover": "#244B78",
+            "accent": "#3976C5",
+            "text": "#253247",
+            "muted": "#718096",
+            "border": "#DCE4EF",
+            "success": "#23845B",
+            "error": "#C0392B",
+        }
+
+        # --------------------------------------------------
+        # ttk styling
+        # --------------------------------------------------
+        style = ttk.Style(self)
+        style.theme_use("clam")
+
+        style.configure(
+            "Modern.TCombobox",
+            padding=(12, 10),
+            font=("Segoe UI", 11),
+            foreground=self.COLORS["text"],
+            fieldbackground=self.COLORS["white"],
+            background=self.COLORS["white"],
+            bordercolor=self.COLORS["border"],
+            arrowcolor=self.COLORS["primary"],
+        )
+
+        style.map(
+            "Modern.TCombobox",
+            fieldbackground=[("readonly", self.COLORS["white"])],
+            foreground=[("readonly", self.COLORS["text"])],
+            bordercolor=[("focus", self.COLORS["accent"])],
+        )
+
+        style.configure(
+            "Primary.TButton",
+            font=("Segoe UI", 11, "bold"),
+            padding=(18, 12),
+            foreground=self.COLORS["white"],
+            background=self.COLORS["primary"],
+            borderwidth=0,
+        )
+
+        style.map(
+            "Primary.TButton",
+            background=[
+                ("disabled", "#AAB7C8"),
+                ("active", self.COLORS["primary_hover"]),
+                ("pressed", self.COLORS["primary_hover"]),
+            ],
+            foreground=[
+                ("disabled", "#F0F2F5"),
+                ("!disabled", self.COLORS["white"]),
+            ],
+        )
+
+        style.configure(
+            "Secondary.TButton",
+            font=("Segoe UI", 10),
+            padding=(12, 8),
+        )
+
+        # --------------------------------------------------
         # Variables
-        self.day_var = tk.StringVar(value=str(today.day))
+        # --------------------------------------------------
+        self.day_var = tk.StringVar(value=str(self.today.day))
+        self.status_var = tk.StringVar(
+            value="Prêt à générer votre planning."
+        )
 
-        # Day
-        ttk.Label(self, text="Jour:").grid(row=2, column=0, **pad, sticky="w")
-        self.day_menu = ttk.OptionMenu(self, self.day_var, self.day_var.get(),
-                                       *['mois complet'] + list(range(1, 32)))
-        self.day_menu.grid(row=2, column=1, **pad, sticky="ew")
+        self.processing = False
 
+        # --------------------------------------------------
+        # Main container
+        # --------------------------------------------------
+        self.container = tk.Frame(
+            self,
+            bg=self.COLORS["background"],
+        )
+        self.container.pack(fill="both", expand=True)
+
+        # --------------------------------------------------
+        # Header
+        # --------------------------------------------------
+        header = tk.Frame(
+            self.container,
+            bg=self.COLORS["primary"],
+            height=125,
+        )
+        header.pack(fill="x")
+        header.pack_propagate(False)
+
+        header_content = tk.Frame(
+            header,
+            bg=self.COLORS["primary"],
+        )
+        header_content.pack(
+            fill="both",
+            expand=True,
+            padx=32,
+            pady=22,
+        )
+
+        tk.Label(
+            header_content,
+            text="PLANNING AUTO",
+            font=("Segoe UI", 21, "bold"),
+            fg=self.COLORS["white"],
+            bg=self.COLORS["primary"],
+        ).pack(anchor="w")
+
+        tk.Label(
+            header_content,
+            text="Génération automatique des plannings PDF",
+            font=("Segoe UI", 10),
+            fg="#D6E3F3",
+            bg=self.COLORS["primary"],
+        ).pack(anchor="w", pady=(5, 0))
+
+        # --------------------------------------------------
+        # Selection card
+        # --------------------------------------------------
+        card = tk.Frame(
+            self.container,
+            bg=self.COLORS["white"],
+            highlightbackground=self.COLORS["border"],
+            highlightthickness=1,
+        )
+        card.pack(
+            fill="x",
+            padx=28,
+            pady=(24, 16),
+        )
+
+        card_content = tk.Frame(
+            card,
+            bg=self.COLORS["white"],
+        )
+        card_content.pack(
+            fill="x",
+            padx=24,
+            pady=22,
+        )
+
+        # --------------------------------------------------
+        # PDF selection
+        # --------------------------------------------------
+        tk.Label(
+            card_content,
+            text="FICHIER SOURCE",
+            font=("Segoe UI", 9, "bold"),
+            fg=self.COLORS["text"],
+            bg=self.COLORS["white"],
+        ).pack(anchor="w", pady=(0, 7))
+
+        # Process all PDFs by default
+        self.all_pdf_radio = tk.Radiobutton(
+            card_content,
+            text="Traiter tous les PDF du dossier",
+            variable=self.process_all,
+            value=True,
+            font=("Segoe UI", 10),
+            fg=self.COLORS["text"],
+            bg=self.COLORS["white"],
+            activebackground=self.COLORS["white"],
+            selectcolor=self.COLORS["white"],
+            command=self._toggle_pdf_selection,
+        )
+        self.all_pdf_radio.pack(anchor="w", pady=3)
+
+        # Process a single PDF
+        self.single_pdf_radio = tk.Radiobutton(
+            card_content,
+            text="Traiter un seul PDF",
+            variable=self.process_all,
+            value=False,
+            font=("Segoe UI", 10),
+            fg=self.COLORS["text"],
+            bg=self.COLORS["white"],
+            activebackground=self.COLORS["white"],
+            selectcolor=self.COLORS["white"],
+            command=self._toggle_pdf_selection,
+        )
+        self.single_pdf_radio.pack(anchor="w", pady=3)
+
+        # File selection row
+        self.pdf_selection_frame = tk.Frame(
+            card_content,
+            bg=self.COLORS["white"],
+        )
+        self.pdf_selection_frame.pack(fill="x", pady=(7, 15))
+
+        self.pdf_path_label = tk.Label(
+            self.pdf_selection_frame,
+            text="Aucun fichier sélectionné",
+            font=("Segoe UI", 9),
+            fg=self.COLORS["muted"],
+            bg=self.COLORS["white"],
+            anchor="w",
+            justify="left",
+            wraplength=300,
+        )
+        self.pdf_path_label.pack(
+            side="left",
+            fill="x",
+            expand=True,
+            padx=(0, 8),
+        )
+
+        self.browse_btn = ttk.Button(
+            self.pdf_selection_frame,
+            text="Parcourir...",
+            command=self._browse_pdf,
+            style="Secondary.TButton",
+        )
+        self.browse_btn.pack(side="right")
+
+        self._toggle_pdf_selection()
+
+        tk.Label(
+            card_content,
+            text="Configurer le traitement",
+            font=("Segoe UI", 14, "bold"),
+            fg=self.COLORS["text"],
+            bg=self.COLORS["white"],
+        ).pack(anchor="w")
+
+        tk.Label(
+            card_content,
+            text="Choisissez le jour à générer ou traitez le mois entier.",
+            font=("Segoe UI", 9),
+            fg=self.COLORS["muted"],
+            bg=self.COLORS["white"],
+            wraplength=440,
+            justify="left",
+        ).pack(anchor="w", pady=(5, 20))
+
+        tk.Label(
+            card_content,
+            text="JOUR À TRAITER",
+            font=("Segoe UI", 9, "bold"),
+            fg=self.COLORS["text"],
+            bg=self.COLORS["white"],
+        ).pack(anchor="w", pady=(0, 7))
+
+        self.day_menu = ttk.Combobox(
+            card_content,
+            textvariable=self.day_var,
+            values=["Mois complet"] + list(range(1, 32)),
+            state="readonly",
+            style="Modern.TCombobox",
+            font=("Segoe UI", 11),
+        )
+        self.day_menu.pack(fill="x")
+
+        # Keep the original French value used by _on_run.
+        self.day_menu["values"] = (
+            ["mois complet"] + list(range(1, 32))
+        )
+
+        self.day_menu.set(str(self.today.day))
+
+        # --------------------------------------------------
         # Run button
-        self.run_btn = ttk.Button(self, text="Go", command=self._on_run)
-        self.run_btn.grid(row=3, column=0, columnspan=2, pady=(10, 10))
+        # --------------------------------------------------
+        self.run_btn = ttk.Button(
+            self.container,
+            text="Générer le planning",
+            command=self._on_run,
+            style="Primary.TButton",
+        )
+        self.run_btn.pack(
+            fill="x",
+            padx=28,
+            pady=(2, 12),
+        )
 
+        # --------------------------------------------------
+        # Status area
+        # --------------------------------------------------
+        status_frame = tk.Frame(
+            self.container,
+            bg=self.COLORS["background"],
+        )
+        status_frame.pack(
+            fill="x",
+            padx=30,
+            pady=(4, 0),
+        )
+
+        self.status_indicator = tk.Label(
+            status_frame,
+            text="●",
+            font=("Segoe UI", 11),
+            fg=self.COLORS["success"],
+            bg=self.COLORS["background"],
+        )
+        self.status_indicator.pack(side="left", padx=(0, 8))
+
+        self.status_label = tk.Label(
+            status_frame,
+            textvariable=self.status_var,
+            font=("Segoe UI", 9),
+            fg=self.COLORS["muted"],
+            bg=self.COLORS["background"],
+            anchor="w",
+            justify="left",
+            wraplength=470,
+        )
+        self.status_label.pack(side="left", fill="x", expand=True)
+
+        # --------------------------------------------------
         # Center the window
+        # --------------------------------------------------
         self.update_idletasks()
-        w = self.winfo_width()
-        h = self.winfo_height()
-        ws = self.winfo_screenwidth()
-        hs = self.winfo_screenheight()
-        x = (ws // 2) - (w // 2);
-        y = (hs // 2) - (h // 2)
-        self.geometry(f"+{x}+{y}")
 
-    def _update_day_menu(self):
-        year = int(self.year_var.get())
-        month = int(self.month_var.get())
-        days = self._days_for(year, month)
-        menu = self.day_menu["menu"]
-        menu.delete(0, "end")
-        for d in days:
-            menu.add_command(label=d, command=lambda v=d: self.day_var.set(v))
-        if self.day_var.get() > days[-1]:
-            self.day_var.set(days[-1])
+        width = 520
+        height = 560
 
-    def _on_year_or_month_change(self, _=None):
-        self._update_day_menu()
+        x = (self.winfo_screenwidth() - width) // 2
+        y = (self.winfo_screenheight() - height) // 2
 
+        self.geometry(f"{width}x{height}+{x}+{y}")
+
+    # ------------------------------------------------------
+    # Enable/disable controls during processing
+    # ------------------------------------------------------
     def _set_processing_state(self, processing: bool):
-        """Enable/disable controls and change button text."""
-        state = "disabled" if processing else "normal"
-        try:
-            self.year_menu.configure(state=state)
-            self.month_menu.configure(state=state)
-            self.day_menu.configure(state=state)
-        except Exception:
-            pass
-        self.run_btn.configure(text="Traitement en cours..." if processing else "Go", state=state)
+        self.processing = processing
 
-    def _on_run(self):
-        """
-        Simple (non-threaded) run:
-        - disable UI and change label
-        - force UI update so the change is visible
-        - call user_function (runs in main thread; GUI will be unresponsive while it runs)
-        - re-enable UI and show result
-        """
-        if self.day_var.get() == 'mois complet':
-            chosen_day = None
+        state = "disabled" if processing else "readonly"
+
+        self.day_menu.configure(state=state)
+
+        self.run_btn.configure(
+            state="disabled" if processing else "normal",
+            text=(
+                "Traitement en cours..."
+                if processing
+                else "Générer le planning"
+            ),
+        )
+
+        if processing:
+            self.status_indicator.configure(
+                fg=self.COLORS["accent"]
+            )
+            self.status_var.set(
+                "Traitement des fichiers PDF en cours..."
+            )
         else:
-            chosen_day = int(self.day_var.get())
+            self.status_indicator.configure(
+                fg=self.COLORS["success"]
+            )
 
-        # Disable UI and change label
-        self._set_processing_state(True)
-        # Force the GUI to process the change so user sees the "Processing..." label
-        self.update_idletasks()
-        self.update()
+    def _browse_pdf(self):
+        pdf_path = filedialog.askopenfilename(
+            title="Choisir un planning PDF",
+            initialdir=os.path.abspath("plannings_mensuels"),
+            filetypes=[
+                ("Fichiers PDF", "*.pdf"),
+                ("Tous les fichiers", "*.*"),
+            ],
+            parent=self,
+        )
 
-        # Call the user function (this will block the GUI if it takes long)
+        if pdf_path:
+            self.selected_pdf.set(pdf_path)
+
+            self.pdf_path_label.configure(
+                text=os.path.basename(pdf_path),
+                fg=self.COLORS["text"],
+            )
+
+    def _toggle_pdf_selection(self):
+        if self.process_all.get():
+            self.browse_btn.configure(state="disabled")
+
+            self.pdf_path_label.configure(
+                text="Tous les PDF du dossier seront traités",
+                fg=self.COLORS["muted"],
+            )
+        else:
+            self.browse_btn.configure(state="normal")
+
+            if self.selected_pdf.get():
+                self.pdf_path_label.configure(
+                    text=os.path.basename(self.selected_pdf.get()),
+                    fg=self.COLORS["text"],
+                )
+            else:
+                self.pdf_path_label.configure(
+                    text="Aucun fichier sélectionné",
+                    fg=self.COLORS["muted"],
+                )
+
+    # ------------------------------------------------------
+    # Run the existing processing pipeline
+    # ------------------------------------------------------
+    def _on_run(self):
         try:
+            shutil.rmtree("crop_cell", ignore_errors=True)
+            shutil.rmtree("extracted_images", ignore_errors=True)
+            # Determine which day to process
+            if self.day_var.get() == "mois complet":
+                chosen_day = None
+            else:
+                chosen_day = int(self.day_var.get())
+
+            # Determine which PDF files to process
+            if self.process_all.get():
+                pdf_directory = "plannings_mensuels"
+
+                if not os.path.isdir(pdf_directory):
+                    messagebox.showerror(
+                        "Dossier introuvable",
+                        f"Le dossier '{pdf_directory}' n'existe pas.",
+                        parent=self,
+                    )
+                    return
+
+                pdf_files = [
+                    os.path.join(pdf_directory, filename)
+                    for filename in os.listdir(pdf_directory)
+                    if filename.lower().endswith(".pdf")
+                ]
+
+                if not pdf_files:
+                    messagebox.showwarning(
+                        "Aucun PDF",
+                        "Aucun fichier PDF n'a été trouvé dans le dossier.",
+                        parent=self,
+                    )
+                    return
+
+            else:
+                selected_pdf = self.selected_pdf.get()
+
+                if not selected_pdf:
+                    messagebox.showwarning(
+                        "Aucun fichier sélectionné",
+                        "Veuillez sélectionner un fichier PDF.",
+                        parent=self,
+                    )
+                    return
+
+                if not os.path.isfile(selected_pdf):
+                    messagebox.showerror(
+                        "Fichier introuvable",
+                        "Le fichier sélectionné n'existe plus.",
+                        parent=self,
+                    )
+                    return
+
+                pdf_files = [selected_pdf]
+
+            # Begin processing
+            self._set_processing_state(True)
+            self.update_idletasks()
+            self.update()
+
             locale.setlocale(locale.LC_TIME, "fr_FR.UTF-8")
-            for pdf_file in os.listdir('plannings_mensuels'):
-                main(os.path.join('plannings_mensuels', pdf_file), chosen_day=chosen_day)
+
+            total = len(pdf_files)
+
+            for index, pdf_file in enumerate(pdf_files, start=1):
+                filename = os.path.basename(pdf_file)
+
+                self.status_var.set(
+                    f"Traitement du fichier {index}/{total} : {filename}"
+                )
+                self.update_idletasks()
+
+                main(pdf_file, chosen_day=chosen_day)
+
+            # Preserve your existing cleanup behavior
             shutil.rmtree("crop_cell")
             shutil.rmtree("extracted_images")
+
         except Exception as e:
-            # Re-enable UI before showing error
             print(e)
+
             self._set_processing_state(False)
+
+            self.status_indicator.configure(
+                fg=self.COLORS["error"]
+            )
+            self.status_var.set(
+                "Une erreur est survenue pendant le traitement."
+            )
+
+            messagebox.showerror(
+                "Erreur de traitement",
+                f"Impossible de terminer le traitement.\n\n{e}",
+                parent=self,
+            )
             return
 
-        # Re-enable UI and show result
         self._set_processing_state(False)
+
+        self.status_indicator.configure(
+            fg=self.COLORS["success"]
+        )
+        self.status_var.set(
+            f"Traitement terminé : {len(pdf_files)} fichier(s) traité(s)."
+        )
+
+        messagebox.showinfo(
+            "Traitement terminé",
+            f"Les plannings ont été générés avec succès.\n\n"
+            f"Nombre de fichiers traités : {len(pdf_files)}",
+            parent=self,
+        )
+        print("coucou1")
+        shutil.rmtree("crop_cell", ignore_errors=True)
+        shutil.rmtree("extracted_images", ignore_errors=True)
 
 
 def is_right_color(cell_image_path, reference_color):
-    try:
-        cell_image = cv2.imread(cell_image_path)
-        distance = np.linalg.norm(cell_image - reference_color, axis=2)
-        mask = np.uint8((distance < 40) * 255)
-    except TypeError:
-        breakpoint()
+    cell_image = cv2.imread(cell_image_path)
+    distance = np.linalg.norm(cell_image - reference_color, axis=2)
+    mask = np.uint8((distance < 40) * 255)
+
 
     return 23500 < mask.sum(), mask.sum()
 
