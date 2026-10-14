@@ -25,12 +25,10 @@ def show_error_popup(title, error_message):
     messagebox.showerror(title, error_message, parent=popup)
 
     popup.destroy()
-    print("coucou4")
 
 
 def handle_exception(exc_type, exc_value, exc_traceback):
     """Display uncaught exceptions in a popup."""
-    print("coucou2")
     error_details = "".join(
         traceback.format_exception(
             exc_type, exc_value, exc_traceback
@@ -389,7 +387,7 @@ class SimpleDatePicker(tk.Tk):
         self.update_idletasks()
 
         width = 520
-        height = 560
+        height = 600
 
         x = (self.winfo_screenwidth() - width) // 2
         y = (self.winfo_screenheight() - height) // 2
@@ -585,7 +583,6 @@ class SimpleDatePicker(tk.Tk):
             f"Nombre de fichiers traités : {len(pdf_files)}",
             parent=self,
         )
-        print("coucou1")
         shutil.rmtree("crop_cell", ignore_errors=True)
         shutil.rmtree("extracted_images", ignore_errors=True)
 
