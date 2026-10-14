@@ -125,15 +125,14 @@ def extract_images(pdf_file):
     doc = fitz.open(pdf_file)
 
     for i, page in enumerate(doc):
-        for img_index, img in enumerate(page.get_images(full=True)):
-            xref = img[0]
-            name = img[7]
+        for img_index, info in enumerate(page.get_image_info(xrefs=True)):
+            xref = info['xref']
             base_image = doc.extract_image(xref)
             image_bytes = base_image["image"]
             image_ext = base_image["ext"]
             if not os.path.exists("extracted_images"):
                 os.mkdir("extracted_images")
-            with open(f"extracted_images/page{i + 1}_{name}.{image_ext}", "wb") as f:
+            with open(f"extracted_images/page{i + 1}_Image{img_index + 1}.{image_ext}", "wb") as f:
                 f.write(image_bytes)
 
 
